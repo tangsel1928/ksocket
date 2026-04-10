@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+"""
+ks-ai - KSocket AI Shell
+Claude AI yang bisa interactive shell ke VPS via ksocket.
+
+Usage:
+  ./ks-ai -s "SECRET"
+  ./ks-ai -s "SECRET" --task "cek semua user yang login"
+  ./ks-ai -s "SECRET" --task "audit security server ini"
+  ANTHROPIC_API_KEY=sk-xxx ./ks-ai -s "SECRET"
+"""
+
+import os
+import sys
+import subprocess
+import time
+import argparse
+import json
+import re
+
+try:
+    import anthropic
+except ImportError:
+    print("[-] Install dulu: pip install anthropic")
+    sys.exit(1)
+
+KSBIN = None
+def find_ks():
+    global KSBIN
+    for p in [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "ks"),
+        "/usr/local/bin/ks",
+        "/usr/bin/ks",
+    ]:
+        if os.path.isfile(p) and os.access(p, os.X_OK):
+            KSBIN = p
+            return True
+    return False
+
+def run_cmd(secret, cmd, timeout=15):
+    try:
+        safe_cmd = cmd.replace("'", "'\\''")
+        proc = subprocess.run(
+            f"echo '{safe_cmd}' | timeout {timeout} {KSBIN} -s \"{secret}\" 2>&1",
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout + 5
+        )
+        output = proc.stdout + proc.stderr
+        lines = output.split('\n')
+        clean = []
+        skip_headers = True
+        for line in lines:
+            stripped = line.strip()
+            if skip_headers:
+                if stripped.startswith('=Secret') or \
+                   stripped.startswith('=Encryption') or \
+                   stripped.startswith('=Hint') or \
+                   stripped.startswith('[*] Connecting') or \
+                   stripped == '' or \
+                   'SRP-AES' in stripped or \
+                   'PS1=' in stripped:
+                    continue
+                skip_headers = False
+            clean.append(line)
+        result = '\n'.join(clean)
+        result = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', result)
+        result = re.sub(r'\]0;[^\x07]*\x07?', '', result)
+        result = re.sub(r'\[K', '', result)
+        result = re.sub(r'\[Bye\]', '', result)
+        prompt_pattern = re.compile(r'^\s*\S+@\S+:[^$#]*[$#]\s*$')
+        final = []
+        for line in result.split('\n'):
+            if prompt_pattern.match(line.strip()):
+                continue
+            final.append(line)
+        return '\n'.join(final).strip()
+    except subprocess.TimeoutExpired:
+        return "[TIMEOUT]"
+    except Exception as e:
+        return f"[ERROR] {str(e)}"
+
+def ai_shell(secret, api_key, task=None, model="claude-sonnet-4-20250514"):
+    client = anthropic.Anthropic(api_key=api_key)
+
+    print("\033[36m[*] KSocket AI Shell\033[0m")
+    print(f"\033[36m[*] Secret: {secret}\033[0m")
+    print(f"\033[36m[*] Model: {model}\033[0m")
+    print()
+
+    info = run_cmd(secret, "id && hostname && uname -a && pwd", timeout=15)
+    print(f"\033[32m[+] Connected:\033[0m")
+    print(f"    {info.split(chr(10))[0] if info else 'unknown'}")
+    print()
+
+    system_prompt = f"""Kamu adalah AI pentester/sysadmin yang sedang bekerja di server via shell.
+Kamu bisa menjalankan command Linux apapun di server ini.
+
+Info server:
+{info}
+
+ATURAN:
+1. Untuk menjalankan command, tulis dalam blok: ```bash\nCOMMAND\n```
+2. Hanya 1 command per response (bisa chained dengan && atau ;)
+3. Tunggu output sebelum jalankan command berikutnya
+4. Jika task selesai, tulis: [SELESAI] diikuti ringkasan
+5. Jangan jalankan command yang destructive tanpa diminta
+6. Berikan analisis singkat dari setiap output yang didapat
+7. Jika command butuh waktu lama, tambahkan timeout yang sesuai"""
+
+    messages = []
+
+    if task:
+        print(f"\033[33m[*] Task: {task}\033[0m")
+        print()
+        messages.append({"role": "user", "content": f"Kerjakan task ini di server: {task}"})
+    else:
+        print("\033[33m[*] Interactive mode - ketik perintah atau task\033[0m")
+        print("\033[33m[*] Ketik 'exit' untuk keluar\033[0m")
+        print()
+        user_input = input("\033[1m> \033[0m").strip()
+        if user_input.lower() in ['exit', 'quit', 'q']:
+            return
+        messages.append({"role": "user", "content": user_input})
+
+    while True:
+        try:
+            response = client.messages.create(
+                model=model,
+                max_tokens=4096,
+                system=system_prompt,
+                messages=messages
+            )
+
+            reply = response.content[0].text
+            messages.append({"role": "assistant", "content": reply})
+
+            bash_match = re.search(r'```bash\n(.*?)\n```', reply, re.DOTALL)
+
+            display = reply
+            if bash_match:
+                cmd = bash_match.group(1).strip()
+                before_cmd = reply[:bash_match.start()].strip()
+                after_cmd = reply[bash_match.end():].strip()
+
+                if before_cmd:
+                    print(f"\033[36m{before_cmd}\033[0m")
+
+                print(f"\n\033[33m$ {cmd}\033[0m")
+
+                output = run_cmd(secret, cmd)
+                print(f"\033[37m{output}\033[0m\n")
+
+                if after_cmd:
+                    print(f"\033[36m{after_cmd}\033[0m")
+
+                messages.append({
+                    "role": "user",
+                    "content": f"Output dari `{cmd}`:\n```\n{output}\n```"
+                })
+
+            else:
+                print(f"\033[36m{reply}\033[0m")
+
+                if "[SELESAI]" in reply:
+                    print()
+                    print("\033[32m[+] Task selesai.\033[0m")
+                    break
+
+                if not task:
+                    print()
+                    user_input = input("\033[1m> \033[0m").strip()
+                    if user_input.lower() in ['exit', 'quit', 'q']:
+                        break
+                    messages.append({"role": "user", "content": user_input})
+                else:
+                    break
+
+            if len(messages) > 40:
+                messages = messages[:2] + messages[-20:]
+
+        except KeyboardInterrupt:
+            print("\n\033[31m[-] Interrupted\033[0m")
+            break
+        except anthropic.APIError as e:
+            print(f"\033[31m[-] API Error: {e}\033[0m")
+            break
+
+def main():
+    parser = argparse.ArgumentParser(description="KSocket AI Shell")
+    parser.add_argument("-s", "--secret", required=True, help="Secret key")
+    parser.add_argument("--task", help="Task otomatis (tanpa interactive)")
+    parser.add_argument("--model", default="claude-sonnet-4-20250514", help="Model Claude")
+    parser.add_argument("--key", help="Anthropic API key")
+    args = parser.parse_args()
+
+    api_key = args.key or os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        print("[-] Set API key:")
+        print("    export ANTHROPIC_API_KEY=sk-ant-xxx")
+        print("    atau: ./ks-ai -s SECRET --key sk-ant-xxx")
+        sys.exit(1)
+
+    if not find_ks():
+        print("[-] ks tidak ditemukan")
+        sys.exit(1)
+
+    ai_shell(args.secret, api_key, task=args.task, model=args.model)
+
+if __name__ == "__main__":
+    main()
