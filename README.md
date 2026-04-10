@@ -1,13 +1,13 @@
 # KSocket
 
-Encrypted reverse shell with auto-persistence. Single file deploy, secret-key based connection (no IP/port needed), built from [gsocket](https://github.com/hackerschoice/gsocket) source with custom binary.
+Encrypted reverse shell with auto-persistence. Single file deploy, secret-key based connection
 
 ## Features
 
 - Single file deploy
-- Secret key connection (no IP/port needed)
+- Secret key connection
 - End-to-end encrypted (SRP-AES-256-CBC-SHA)
-- Auto-persistence (systemd, crontab, bashrc, profile, bash_profile, zshrc)
+- Auto-persistence
 - Process disguise
 - Auto-reconnect
 - Full interactive PTY
