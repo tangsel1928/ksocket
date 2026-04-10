@@ -41,10 +41,3 @@ wget -qO- https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/
 ```bash
 ks -s "SECRET" -i
 ```
-
-### Uninstall
-
-```bash
-./deploy uninstall
-```
-Created BY TegalXploiter
