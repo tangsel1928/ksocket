@@ -34,3 +34,4 @@ ks -s "SECRET" -i
 ```bash
 ./deploy uninstall
 ```
+Created BY TegalXploiter
