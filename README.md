@@ -5,15 +5,15 @@ Encrypted reverse shell with auto-persistence. Single file deploy, secret-key ba
 ## Features
 
 - Single file deploy
-- Secret key connection (no IP/port needed)
+- Secret key connection
 - End-to-end encrypted (SRP-AES-256-CBC-SHA)
-- Auto-persistence (systemd, crontab, bashrc, profile, bash_profile, zshrc)
+- Auto-persistence
 - Process disguise
 - Auto-reconnect
 - Full interactive PTY
 - Root & non-root support
 - Zero dependency
-- Lightweight (~1-2MB RAM, ~0% CPU)
+- Lightweight (~0% CPU)
 
 ## Quick Start
 
